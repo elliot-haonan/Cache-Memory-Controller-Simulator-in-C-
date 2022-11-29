@@ -15,6 +15,29 @@ cache::cache()
 	this->myStat.hitL1 =0;
 	this->myStat.hitL2 =0;
 }
+int* cache::getL2Data()
+{
+	int* s;
+	int c;
+	for(int i=0;i<L2_CACHE_WAYS;i++)
+		s[i] = L2[0][i].data;
+	return s;
+	
+}
+
+int* cache::getL2LRU()
+{
+	int* s;
+	int c;
+	for(int i=0;i<L2_CACHE_WAYS;i++)
+		s[i] = L2[0][i].lru_position;
+	return s;
+}
+
+int cache::getDataL1()
+{
+	return this->L1[0].data;
+}
 
 int cache::getMissL1()
 {
@@ -115,7 +138,7 @@ void cache::controller(bool MemR, bool MemW, int* data, int adr, int* myMem)
 
 			int i;
 			for(i=0; i<L2_CACHE_WAYS; i++){
-				if((this->L2[addr_index][i].tag == addr_tag) && (this->L2[addr_index][i].valid == true)){
+				if((this->L2[addr_index][i].tag == addr_tag) && (this->L2[addr_index][i].valid == true)){ // found in L2
 
 					this->myStat.hitL2 += 1;
 
@@ -124,7 +147,7 @@ void cache::controller(bool MemR, bool MemW, int* data, int adr, int* myMem)
 					int temp_data = this->L1[addr_index].data;
 					
 					this->L1[addr_index].tag = addr_tag;
-					this->L1[addr_index].data = *data;
+					this->L1[addr_index].data = this->L2[addr_index][i].data;
 					this->L1[addr_index].valid = true;
 
 					this->L2[addr_index][i].tag = temp_tag;
@@ -147,12 +170,13 @@ void cache::controller(bool MemR, bool MemW, int* data, int adr, int* myMem)
 		}
 		// not found in Cache, go to main memory
 		if(!found){
+			//cout<<"Access Main Memory Here!";
 			int temp_data = this->L1[addr_index].data;
 			int temp_tag = this->L1[addr_index].tag;
 			int temp_valid = this->L1[addr_index].valid;
 
 			// bring the cache line to L1
-			this->L1[addr_index].data = *data;
+			this->L1[addr_index].data = myMem[adr];
 			this->L1[addr_index].valid = true;
 			this->L1[addr_index].tag = addr_tag;
 
@@ -186,12 +210,13 @@ void cache::controller(bool MemR, bool MemW, int* data, int adr, int* myMem)
 							for(int j=0; j<L2_CACHE_WAYS; j++)
 								if(j!=k)
 									L2[addr_index][j].lru_position -= 1;
+							break;
 						}
 				}
 			}	
 		}
 	}
-	cout<<"| #L1 Access:" <<this->myStat.accL1<<"	| #L2 Access:" << this->myStat.accL2 <<"	| #L1 Hit:"<< this->myStat.hitL1
+	/*cout<<"| #L1 Access:" <<this->myStat.accL1<<"	| #L2 Access:" << this->myStat.accL2 <<"	| #L1 Hit:"<< this->myStat.hitL1
 	<<"	| #L2 Hit:"<< this->myStat.hitL2 << "	| #L1 Miss:"<<
-	this->myStat.missL1 << "	| #L1 Miss:" << this->myStat.missL2 << endl;
+	this->myStat.missL1 << "	| #L2 Miss:" << this->myStat.missL2;*/
 }
